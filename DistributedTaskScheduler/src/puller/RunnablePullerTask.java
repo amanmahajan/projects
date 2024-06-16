@@ -1,21 +1,18 @@
 package puller;
 
-import db.TaskDao;
+import db.TaskDb;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class RunnablePullerTask implements Runnable {
 
-    List<TaskDao> tasks = new ArrayList<>();
+    final TaskDb taskDb;
 
-
-    public RunnablePullerTask(List<TaskDao> tasks) {
-        this.tasks.addAll(tasks);
+    public RunnablePullerTask(final TaskDb taskDb) {
+       this.taskDb = taskDb;
 
     }
     @Override
     public void run() {
-
+        this.taskDb.executeTransactionalTaskUpdate();
     }
 }

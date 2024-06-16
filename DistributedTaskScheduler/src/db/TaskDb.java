@@ -10,7 +10,7 @@ public class TaskDb {
     public static final String SaveQuery = "INSERT INTO tasks (id, name, scheduled_at, command, completed_at, picket_at, ended_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
     private Connection connection;
 
-    public void TaskDb(Connection connection) {
+    public  TaskDb(Connection connection) {
         this.connection = connection;
     }
 
@@ -20,22 +20,20 @@ public class TaskDb {
         if (this.connection == null) {
             throw new Exception("No connection is found");
         }
-        try {
-            PreparedStatement statement = connection.prepareStatement(SaveQuery);
-            statement.setString(1, task.getId());
-            statement.setString(2, task.getName());
-            statement.setLong(3, task.getScheduledAt());
-            statement.setString(4, task.getCommand());
-            statement.setLong(5, task.getCompletedAt());
-            statement.setLong(6, task.getPicketAt());
-            statement.setLong(7, task.getEndedAt());
 
-            statement.executeUpdate();
-            System.out.println("Task saved to database successfully.");
-        } catch (SQLException e) {
-            System.out.println("Error saving task to database: " + e.getMessage());
+        PreparedStatement statement = connection.prepareStatement(SaveQuery);
+        statement.setString(1, task.getId());
+        statement.setString(2, task.getName());
+        statement.setLong(3, task.getScheduledAt());
+        statement.setString(4, task.getCommand());
+        statement.setLong(5, task.getCompletedAt());
+        statement.setLong(6, task.getPicketAt());
+        statement.setLong(7, task.getEndedAt());
 
-        }
+        statement.executeUpdate();
+        System.out.println("Task saved to database successfully.");
+
+
         return task;
     }
 
@@ -90,6 +88,9 @@ public class TaskDb {
             while (resultSet.next()) {
                 selectedIds.add(resultSet.getString("id"));
             }
+
+            // Write to Kafka
+
 
             // Step 2: Update picket_at for the selected tasks
             StringBuilder updateQuery = new StringBuilder("UPDATE tasks SET picket_at = UNIX_TIMESTAMP(NOW()) WHERE id IN (");
