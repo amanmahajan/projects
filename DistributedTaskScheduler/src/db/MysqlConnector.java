@@ -16,9 +16,9 @@ public class MysqlConnector {
     }
     public void initialize() {
         // Database connection parameters
-        String url = "jdbc:mysql://localhost:3306/mydatabase"; // Replace 'mydatabase' with your database name
-        String user = "username"; // Replace 'username' with your MySQL username
-        String password = "password"; // Replace 'password' with your MySQL password
+        String url = "jdbc:mysql://localhost:3306/taskscheduler";
+        String user = "root";
+        String password = "password";
 
 
         try {
@@ -26,6 +26,7 @@ public class MysqlConnector {
             System.out.println("Connected to the database!");
         } catch (SQLException e) {
             System.out.println("Connection failed! Error: " + e.getMessage());
+            throw new RuntimeException("Cannot create the sql connection");
         }
     }
 

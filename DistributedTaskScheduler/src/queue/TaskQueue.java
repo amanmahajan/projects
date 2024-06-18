@@ -1,9 +1,6 @@
 package queue;
 
 import db.TaskDao;
-import db.TaskDb;
-
-import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
 
 public class TaskQueue {
@@ -11,8 +8,8 @@ public class TaskQueue {
     PriorityBlockingQueue<TaskDao> pq;
 
    public TaskQueue() {
-       this.pq = new PriorityBlockingQueue<TaskDao>(100, (x,y) -> {
-           if(x.getPicketAt() > y.getPicketAt()) {
+       this.pq = new PriorityBlockingQueue<>(100, (x, y) -> {
+           if (x.getScheduledAt() < y.getScheduledAt()) {
                return 1;
            }
            return -1;

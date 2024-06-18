@@ -8,13 +8,14 @@ public class Main {
     public static void main(String[] args) {
 
         MysqlConnector connector = new MysqlConnector();
-        TaskDb db = new TaskDb(connector.connection());
+        TaskQueue queue = new TaskQueue();
+        TaskDb db = new TaskDb(connector.connection(), queue);
 
         TaskController controller = new TaskController(db);
         TaskCreator creator = new TaskCreator(controller);
         creator.createTasks();
 
-        TaskQueue queue = new TaskQueue();
+
 
         PullerWorkers pullerWorkers = new PullerWorkers(db);
         ExecutorWorkers executorWorkers = new ExecutorWorkers(db, queue);

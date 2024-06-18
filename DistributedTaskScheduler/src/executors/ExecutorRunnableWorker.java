@@ -24,7 +24,9 @@ public class ExecutorRunnableWorker implements Runnable{
             Thread.sleep(1000);
             System.out.println("Executing the task: " +  this.taskDao.getName());
 
-        } catch (InterruptedException e) {
+            this.taskDb.updateCompletedAt(taskDao.getId());
+
+        } catch (Exception e) {
 
             throw new RuntimeException(e);
         }

@@ -13,6 +13,11 @@ public class RunnablePullerTask implements Runnable {
     }
     @Override
     public void run() {
-        this.taskDb.executeTransactionalTaskUpdate();
+        try {
+            this.taskDb.executeTransactionalTaskUpdate();
+        } catch (Exception ex) {
+            System.out.println("Not able to pull the task " + ex);
+        }
+
     }
 }

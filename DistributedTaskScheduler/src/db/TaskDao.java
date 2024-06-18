@@ -17,6 +17,8 @@ public class TaskDao {
 
     long endedAt;
 
+    long failedAt;
+
 
     public String getId() {
         return id;
@@ -73,5 +75,14 @@ public class TaskDao {
     public void setEndedAt(long endedAt) {
         this.endedAt = endedAt;
     }
+
+    public long getFailedAt() {
+        return failedAt;
+    }
+
+    public void setFailedAt(long failedAt) {
+        this.failedAt = failedAt;
+    }
+
 
 }

@@ -1,5 +1,7 @@
 package db;
 
+import queue.TaskQueue;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,11 +9,14 @@ import java.util.List;
 public class TaskDb {
 
 
-    public static final String SaveQuery = "INSERT INTO tasks (id, name, scheduled_at, command, completed_at, picket_at, ended_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
-    private Connection connection;
+    public static final String SaveQuery = "INSERT INTO tasks (id, name, scheduledAt, command, completedAt, picketAt, endedAt, failedAt) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private  Connection connection;
 
-    public  TaskDb(Connection connection) {
+    private final TaskQueue taskQueue;
+
+    public  TaskDb(Connection connection, TaskQueue queue) {
         this.connection = connection;
+        this.taskQueue = queue;
     }
 
 
@@ -37,10 +42,14 @@ public class TaskDb {
         return task;
     }
 
-    public TaskDao getTask(final String id) throws SQLException {
+    public TaskDao getTask(final String id) throws Exception {
+
+        if (this.connection == null) {
+            throw new Exception("No connection is found");
+        }
 
         TaskDao task = null;
-        String query = "SELECT * FROM tasks WHERE id = ?";
+        String query = "SELECT * FROM task WHERE id = ?";
 
         try {
             PreparedStatement statement = this.connection.prepareStatement(query);
@@ -66,7 +75,10 @@ public class TaskDb {
         return task;
     }
 
-    public void executeTransactionalTaskUpdate() {
+    public void executeTransactionalTaskUpdate() throws Exception {
+        if (this.connection == null) {
+            throw new Exception("No connection is found");
+        }
         try {
             // Begin transaction
 
@@ -75,7 +87,7 @@ public class TaskDb {
 
             // Step 1: Select tasks scheduled 30 seconds ago with picket_at null
             final String selectQuery = new StringBuilder()
-                    .append("SELECT id FROM tasks ")
+                    .append("SELECT id FROM task ")
                     .append("WHERE scheduled_at <= UNIX_TIMESTAMP(NOW() - INTERVAL 30 SECOND) ")
                     .append("AND picket_at IS NULL ")
                     .append("FOR UPDATE SKIP LOCKED;")
@@ -83,20 +95,36 @@ public class TaskDb {
 
             var resultSet = statement.executeQuery(selectQuery);
 
-            // Store the IDs of selected tasks
-            List<String> selectedIds = new ArrayList<>();
-            while (resultSet.next()) {
-                selectedIds.add(resultSet.getString("id"));
+            if (!resultSet.next()) {
+                System.out.println("No tasks to pull");
+                return;
             }
 
-            // Write to Kafka
+            // Store the IDs of selected tasks
+            List<TaskDao> selectedTasks = new ArrayList<>();
+            while (resultSet.next()) {
+                TaskDao dao = new TaskDao();
+                dao.setId(resultSet.getString("id"));
+                dao.setName(resultSet.getString("name"));
+                dao.setScheduledAt(resultSet.getLong("scheduledAt"));
+                dao.setCommand(resultSet.getString("command"));
+                selectedTasks.add(dao);
+            }
+
+            // Write to Priority Q
+
+            for(TaskDao dao: selectedTasks) {
+
+                System.out.println("Picking up the task " + dao.id);
+                this.taskQueue.addTask(dao);
+            }
 
 
             // Step 2: Update picket_at for the selected tasks
             StringBuilder updateQuery = new StringBuilder("UPDATE tasks SET picket_at = UNIX_TIMESTAMP(NOW()) WHERE id IN (");
-            for (int i = 0; i < selectedIds.size(); i++) {
-                updateQuery.append("'").append(selectedIds.get(i)).append("'");
-                if (i < selectedIds.size() - 1) {
+            for (int i = 0; i < selectedTasks.size(); i++) {
+                updateQuery.append("'").append(selectedTasks.get(i).id).append("'");
+                if (i < selectedTasks.size() - 1) {
                     updateQuery.append(", ");
                 }
             }
@@ -117,6 +145,44 @@ public class TaskDb {
             }
         }
     }
+
+    public void updateCompletedAt(String taskId) throws Exception  {
+
+        PreparedStatement preparedStatement = null;
+
+        if (this.connection == null) {
+            throw new Exception("No connection is found");
+        }
+
+        try {
+            String updateSQL = "UPDATE task SET completedAt = ? WHERE id = ?";
+            preparedStatement = connection.prepareStatement(updateSQL);
+
+            long now = System.currentTimeMillis();
+            preparedStatement.setLong(1, now);
+            preparedStatement.setString(2, taskId);
+
+            int rowsAffected = preparedStatement.executeUpdate();
+
+            // Checking if the update was successful
+            if (rowsAffected > 0) {
+                System.out.println("Task " + taskId + " updated successfully.");
+            } else {
+                System.out.println("No task found with ID: " + taskId);
+            }
+
+
+
+        } catch (final Exception ex) {
+            throw ex;
+
+        }
+
+
+
+    }
+
+
 
 
 }
