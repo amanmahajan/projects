@@ -19,8 +19,8 @@ public class Main {
 
         PullerWorkers pullerWorkers = new PullerWorkers(db);
         ExecutorWorkers executorWorkers = new ExecutorWorkers(db, queue);
-        pullerWorkers.start();
-        executorWorkers.start();
+      //  pullerWorkers.start();
+     //   executorWorkers.start();
 
 
 

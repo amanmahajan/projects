@@ -9,7 +9,7 @@ import java.util.List;
 public class TaskDb {
 
 
-    public static final String SaveQuery = "INSERT INTO tasks (id, name, scheduledAt, command, completedAt, picketAt, endedAt, failedAt) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    public static final String SaveQuery = "INSERT INTO task (id, name, scheduledAt, command, completedAt, picketAt, endedAt, failedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
     private  Connection connection;
 
     private final TaskQueue taskQueue;
@@ -26,7 +26,8 @@ public class TaskDb {
             throw new Exception("No connection is found");
         }
 
-        PreparedStatement statement = connection.prepareStatement(SaveQuery);
+
+        PreparedStatement statement = connection.prepareStatement("INSERT INTO task (id, name, scheduledAt, command, completedAt, picketAt, endedAt, failedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         statement.setString(1, task.getId());
         statement.setString(2, task.getName());
         statement.setLong(3, task.getScheduledAt());
@@ -34,8 +35,14 @@ public class TaskDb {
         statement.setLong(5, task.getCompletedAt());
         statement.setLong(6, task.getPicketAt());
         statement.setLong(7, task.getEndedAt());
+        statement.setLong(8, task.getFailedAt());
 
-        statement.executeUpdate();
+        int rowsInserted = statement.executeUpdate();
+        if (rowsInserted > 0) {
+            System.out.println("Task saved to database successfully.");
+        } else {
+            System.out.println("Task was not saved to database.");
+        }
         System.out.println("Task saved to database successfully.");
 
 
@@ -60,11 +67,11 @@ public class TaskDb {
                 task = new TaskDao();
                 task.setId(resultSet.getString("id"));
                 task.setName(resultSet.getString("name"));
-                task.setScheduledAt(resultSet.getLong("scheduled_at"));
+                task.setScheduledAt(resultSet.getLong("scheduledAt"));
                 task.setCommand(resultSet.getString("command"));
-                task.setCompletedAt(resultSet.getLong("completed_at"));
-                task.setPicketAt(resultSet.getLong("picket_at"));
-                task.setEndedAt(resultSet.getLong("ended_at"));
+                task.setCompletedAt(resultSet.getLong("completedAt"));
+                task.setPicketAt(resultSet.getLong("picketAt"));
+                task.setEndedAt(resultSet.getLong("endedAt"));
             }
         } catch (Exception ex) {
             System.out.println("Error retrieving task from database: " + ex.getMessage());
@@ -88,15 +95,15 @@ public class TaskDb {
             // Step 1: Select tasks scheduled 30 seconds ago with picket_at null
             final String selectQuery = new StringBuilder()
                     .append("SELECT id FROM task ")
-                    .append("WHERE scheduled_at <= UNIX_TIMESTAMP(NOW() - INTERVAL 30 SECOND) ")
-                    .append("AND picket_at IS NULL ")
+                    .append("WHERE scheduledAt <= UNIX_TIMESTAMP(NOW() - INTERVAL 30 SECOND) ")
+                    .append("AND picketAt IS NULL ")
                     .append("FOR UPDATE SKIP LOCKED;")
                     .toString();
 
             var resultSet = statement.executeQuery(selectQuery);
 
             if (!resultSet.next()) {
-                System.out.println("No tasks to pull");
+                System.out.println("No task found");
                 return;
             }
 
@@ -121,7 +128,7 @@ public class TaskDb {
 
 
             // Step 2: Update picket_at for the selected tasks
-            StringBuilder updateQuery = new StringBuilder("UPDATE tasks SET picket_at = UNIX_TIMESTAMP(NOW()) WHERE id IN (");
+            StringBuilder updateQuery = new StringBuilder("UPDATE task SET picket_at = UNIX_TIMESTAMP(NOW()) WHERE id IN (");
             for (int i = 0; i < selectedTasks.size(); i++) {
                 updateQuery.append("'").append(selectedTasks.get(i).id).append("'");
                 if (i < selectedTasks.size() - 1) {

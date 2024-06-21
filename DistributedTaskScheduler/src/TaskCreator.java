@@ -1,6 +1,12 @@
+import db.TaskDao;
+
 import java.time.Instant;
 import java.util.Date;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TaskCreator {
@@ -17,17 +23,28 @@ public class TaskCreator {
 
 
     public void createTasks() {
-        Task task = new Task();
-        task.setId(String.valueOf(this.getId()));
-        task.setName(this.getTaskName());
-        task.setScheduledAt(Date.from(Instant.now()));
 
-        task.setCommand("Execute the task: " + task.getId());
-        try {
-            this.taskController.addTasks(task);
-        } catch (Exception e) {
-            System.out.println("Something bad happened in adding the task " + e);
-        }
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+        Runnable addTask = () -> {
+            CompletableFuture.runAsync(() -> {
+                Task task = new Task();
+                task.setId(String.valueOf(this.getId()));
+                task.setName(this.getTaskName());
+                task.setScheduledAt(Date.from(Instant.now()));
+                task.setCommand("Execute the task: " + task.getId());
+                try {
+                    this.taskController.addTasks(task);
+                } catch (Exception e) {
+                    System.out.println("Something bad happened in adding the task " + e);
+                }
+
+                System.out.println("Successfully Creating the task " + task.id);
+            }).thenRun(() -> System.out.println("Task completed."));;
+        };
+
+        // Schedule the task to run every 500 milliseconds
+        scheduler.scheduleAtFixedRate(addTask, 0, 500, TimeUnit.MILLISECONDS);
 
 
     }
